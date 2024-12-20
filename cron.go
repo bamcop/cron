@@ -98,17 +98,17 @@ func (s byTime) Less(i, j int) bool {
 //
 // Available Settings
 //
-//   Time Zone
-//     Description: The time zone in which schedules are interpreted
-//     Default:     time.Local
+//	Time Zone
+//	  Description: The time zone in which schedules are interpreted
+//	  Default:     time.Local
 //
-//   Parser
-//     Description: Parser converts cron spec strings into cron.Schedules.
-//     Default:     Accepts this spec: https://en.wikipedia.org/wiki/Cron
+//	Parser
+//	  Description: Parser converts cron spec strings into cron.Schedules.
+//	  Default:     Accepts this spec: https://en.wikipedia.org/wiki/Cron
 //
-//   Chain
-//     Description: Wrap submitted jobs to customize behavior.
-//     Default:     A chain that recovers panics and logs them to stderr.
+//	Chain
+//	  Description: Wrap submitted jobs to customize behavior.
+//	  Default:     A chain that recovers panics and logs them to stderr.
 //
 // See "cron.With*" to modify the default behavior.
 func New(opts ...Option) *Cron {
@@ -144,6 +144,19 @@ func (c *Cron) AddFunc(spec string, cmd func()) (EntryID, error) {
 	return c.AddJob(spec, FuncJob(cmd))
 }
 
+func (c *Cron) AddImmediatelyRunFunc(spec string, cmd func()) (EntryID, error) {
+	id, err := c.AddJob(spec, FuncJob(cmd))
+	if err != nil {
+		return 0, err
+	}
+
+	go func() {
+		c.ImmediatelyRun(id)
+	}()
+
+	return id, nil
+}
+
 // AddJob adds a Job to the Cron to be run on the given schedule.
 // The spec is parsed using the time zone of this Cron instance as the default.
 // An opaque ID is returned that can be used to later remove it.
@@ -153,6 +166,19 @@ func (c *Cron) AddJob(spec string, cmd Job) (EntryID, error) {
 		return 0, err
 	}
 	return c.Schedule(schedule, cmd), nil
+}
+
+func (c *Cron) AddImmediatelyRunJob(spec string, cmd Job) (EntryID, error) {
+	id, err := c.AddJob(spec, cmd)
+	if err != nil {
+		return 0, err
+	}
+
+	go func() {
+		c.ImmediatelyRun(id)
+	}()
+
+	return id, nil
 }
 
 // Schedule adds a Job to the Cron to be run on the given schedule.
